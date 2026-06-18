@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 REFLECTION = "Teach us to number our days, that we may gain a heart of wisdom. — Psalm 90:12"
 
 
@@ -28,6 +30,8 @@ def _build_template_digest(calendar_result, weather_report, news_sections) -> st
         if section.items:
             for item in section.items:
                 lines.append(f"* {item.title}")
+                if item.link:
+                    lines.append(f"  (read more) {item.link}")
         else:
             lines.append("* No items available right now.")
         lines.append("")
@@ -81,6 +85,18 @@ def _priority_lines(calendar_result, weather_report) -> list[str]:
 def _polish_with_openai(settings, base_digest: str) -> str:
     from openai import OpenAI
 
+    links: list[str] = []
+
+    def replace_link(match: re.Match) -> str:
+        links.append(match.group(1))
+        return f"(read more) __READ_MORE_LINK_{len(links)}__"
+
+    prompt_digest = re.sub(
+        r"\(read more\)\s+(https?://\S+)",
+        replace_link,
+        base_digest,
+    )
+
     client = OpenAI(api_key=settings.openai_api_key)
     response = client.chat.completions.create(
         model=settings.openai_model,
@@ -89,7 +105,8 @@ def _polish_with_openai(settings, base_digest: str) -> str:
                 "role": "system",
                 "content": (
                     "You polish a concise plain-text morning digest for Telegram. "
-                    "Keep all section headings exactly as provided. Keep links out. "
+                    "Keep all section headings exactly as provided. Preserve every "
+                    "'(read more) URL' line exactly, including its URL and position. "
                     "Keep it warm, practical, short, and do not invent facts."
                 ),
             },
@@ -98,11 +115,19 @@ def _polish_with_openai(settings, base_digest: str) -> str:
                 "content": (
                     "Polish this digest and improve the Suggested priorities based only on the facts present. "
                     "Return only the final digest.\n\n"
-                    f"{base_digest}"
+                    f"{prompt_digest}"
                 ),
             },
         ],
         temperature=0.4,
-        max_tokens=700,
+        max_tokens=900,
     )
-    return response.choices[0].message.content.strip()
+    polished_digest = response.choices[0].message.content.strip()
+
+    for index, link in enumerate(links, start=1):
+        placeholder = f"__READ_MORE_LINK_{index}__"
+        if placeholder not in polished_digest:
+            raise ValueError("OpenAI response removed a news link")
+        polished_digest = polished_digest.replace(placeholder, link)
+
+    return polished_digest
