@@ -7,19 +7,25 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-DEFAULT_CANARY_FEEDS = [
-    "https://www3.gobiernodecanarias.org/noticias/feed/",
-    "https://e00-elmundo.uecdn.es/elmundo/rss/espana.xml",
+DEFAULT_SPANISH_POLITICS_FEEDS = [
+    (
+        "https://news.google.com/rss/search"
+        "?q=politica+espanola+when:1d+-site:facebook.com+-site:marca.com"
+        "&hl=es&gl=ES&ceid=ES:es"
+    ),
 ]
 
 DEFAULT_SCIENCE_FEEDS = [
+    "https://www.sciencedaily.com/rss/top/science.xml",
     "https://www.nasa.gov/news-release/feed/",
-    "https://www.esa.int/rssfeed/Our_Activities/Space_Science",
 ]
 
-DEFAULT_WORLD_FEEDS = [
-    "https://feeds.bbci.co.uk/news/world/rss.xml",
-    "https://feeds.npr.org/1004/rss.xml",
+DEFAULT_WORLD_POLITICS_FEEDS = [
+    (
+        "https://news.google.com/rss/search"
+        "?q=international+government+election+diplomacy+when:1d"
+        "&hl=en-US&gl=US&ceid=US:en"
+    ),
 ]
 
 
@@ -89,14 +95,26 @@ class Settings:
     google_calendar_id: str = get_str("GOOGLE_CALENDAR_ID")
     google_service_account_json: str = get_str("GOOGLE_SERVICE_ACCOUNT_JSON")
 
-    canary_rss_feeds: list[str] = None
+    spanish_politics_rss_feeds: list[str] = None
     science_rss_feeds: list[str] = None
-    world_rss_feeds: list[str] = None
+    world_politics_rss_feeds: list[str] = None
+    benty_fields_url: str = get_str(
+        "BENTY_FIELDS_URL",
+        "https://www.benty-fields.com/daily_arXiv_results",
+    )
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "canary_rss_feeds", get_list("CANARY_RSS_FEEDS", DEFAULT_CANARY_FEEDS))
+        object.__setattr__(
+            self,
+            "spanish_politics_rss_feeds",
+            get_list("SPANISH_POLITICS_RSS_FEEDS", DEFAULT_SPANISH_POLITICS_FEEDS),
+        )
         object.__setattr__(self, "science_rss_feeds", get_list("SCIENCE_RSS_FEEDS", DEFAULT_SCIENCE_FEEDS))
-        object.__setattr__(self, "world_rss_feeds", get_list("WORLD_RSS_FEEDS", DEFAULT_WORLD_FEEDS))
+        object.__setattr__(
+            self,
+            "world_politics_rss_feeds",
+            get_list("WORLD_POLITICS_RSS_FEEDS", DEFAULT_WORLD_POLITICS_FEEDS),
+        )
 
 
 settings = Settings()

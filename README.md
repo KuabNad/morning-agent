@@ -6,7 +6,9 @@ The digest includes:
 
 - today's calendar status
 - Tenerife weather
-- short news sections
+- Spanish and world politics headlines
+- two science headlines
+- three daily galaxy-evolution paper titles
 - suggested priorities
 - a short reflection
 
@@ -98,9 +100,10 @@ Optional:
 
 You can also add RSS feed overrides:
 
-- `CANARY_RSS_FEEDS`
+- `SPANISH_POLITICS_RSS_FEEDS`
 - `SCIENCE_RSS_FEEDS`
-- `WORLD_RSS_FEEDS`
+- `WORLD_POLITICS_RSS_FEEDS`
+- `BENTY_FIELDS_URL`
 
 ## Run Manually In GitHub
 
@@ -192,11 +195,23 @@ Default location:
 
 Weather uses Open-Meteo, which does not require an API key.
 
-News uses RSS feeds. Each section is limited to a few short items so the Telegram message stays concise.
+News uses targeted RSS feeds. The digest includes three Spanish politics headlines,
+two science headlines, and three world politics headlines.
+
+Galaxy-evolution papers are requested for the current Canary Islands date from:
+
+```text
+https://www.benty-fields.com/daily_arXiv_results?date=YYYY-MM-DD
+```
+
+That page currently requires a Benty Fields login for automated requests. When it
+redirects to login or is unavailable, Morning Agent automatically falls back to
+the public arXiv API and returns three recent `astro-ph.GA` titles.
 
 ## Known Limitations
 
 - Google Calendar OAuth is not implemented yet.
 - GitHub Actions cron does not adjust automatically for daylight saving time.
 - RSS feeds can occasionally be slow or unavailable; broken feeds are skipped.
+- Benty Fields currently requires login, so unattended runs normally use the arXiv fallback.
 - Weather and news are fetched from free public services, so occasional API changes are possible.
