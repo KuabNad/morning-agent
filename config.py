@@ -98,9 +98,9 @@ class Settings:
     spanish_politics_rss_feeds: list[str] = None
     science_rss_feeds: list[str] = None
     world_politics_rss_feeds: list[str] = None
-    benty_fields_url: str = get_str(
-        "BENTY_FIELDS_URL",
-        "https://www.benty-fields.com/daily_arXiv_results",
+    arxiv_recent_url: str = get_str(
+        "ARXIV_RECENT_URL",
+        "https://arxiv.org/list/astro-ph.GA/recent",
     )
 
     def __post_init__(self) -> None:

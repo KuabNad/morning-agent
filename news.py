@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
 from html import unescape
 from html.parser import HTMLParser
 import re
 from urllib.parse import urljoin
-from zoneinfo import ZoneInfo
 
 import feedparser
 import requests
@@ -25,7 +23,6 @@ class NewsSection:
 
 
 def fetch_news(settings, per_section: int = 3) -> list[NewsSection]:
-    today = datetime.now(ZoneInfo(settings.timezone)).date().isoformat()
     return [
         NewsSection(
             "Spanish politics",
@@ -34,7 +31,7 @@ def fetch_news(settings, per_section: int = 3) -> list[NewsSection]:
         NewsSection("Science", _fetch_section(settings.science_rss_feeds, 2)),
         NewsSection(
             "Galaxy evolution papers",
-            _fetch_galaxy_papers(settings.benty_fields_url, today, 3),
+            _fetch_galaxy_papers(settings.arxiv_recent_url, 3),
         ),
         NewsSection(
             "World politics",
@@ -84,39 +81,27 @@ def _fetch_section(feeds: list[str], limit: int) -> list[NewsItem]:
     return items
 
 
-def _fetch_galaxy_papers(base_url: str, date: str, limit: int) -> list[NewsItem]:
-    benty_items = _fetch_benty_fields(base_url, date, limit)
-    if benty_items:
-        return benty_items
-    return _fetch_arxiv_galaxy_papers(date, limit)
+def _fetch_galaxy_papers(recent_url: str, limit: int) -> list[NewsItem]:
+    recent_items = _fetch_arxiv_recent(recent_url, limit)
+    if recent_items:
+        return recent_items
+    return _fetch_arxiv_query("cat:astro-ph.GA", limit)
 
 
-def _fetch_benty_fields(base_url: str, date: str, limit: int) -> list[NewsItem]:
+def _fetch_arxiv_recent(recent_url: str, limit: int) -> list[NewsItem]:
     try:
         response = requests.get(
-            base_url,
-            params={"date": date},
-            headers={"User-Agent": "morning-agent/1.0"},
-            timeout=15,
+            recent_url,
+            headers={"User-Agent": "morning-agent/1.0 (daily astronomy digest)"},
+            timeout=20,
         )
         response.raise_for_status()
-        if "/login" in response.url:
-            return []
 
-        parser = _ArxivLinkParser()
+        parser = _ArxivRecentParser()
         parser.feed(response.text)
         return _unique_items(parser.items, limit)
     except (requests.RequestException, ValueError):
         return []
-
-
-def _fetch_arxiv_galaxy_papers(date: str, limit: int) -> list[NewsItem]:
-    date_token = date.replace("-", "")
-    dated_query = f"cat:astro-ph.GA AND submittedDate:[{date_token}0000 TO {date_token}2359]"
-    items = _fetch_arxiv_query(dated_query, limit)
-    if items:
-        return items
-    return _fetch_arxiv_query("cat:astro-ph.GA", limit)
 
 
 def _fetch_arxiv_query(query: str, limit: int) -> list[NewsItem]:
@@ -162,32 +147,45 @@ def _unique_items(items: list[NewsItem], limit: int) -> list[NewsItem]:
     return unique
 
 
-class _ArxivLinkParser(HTMLParser):
+class _ArxivRecentParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
         self.items: list[NewsItem] = []
-        self._href = ""
+        self._links: list[str] = []
+        self._title_depth = 0
         self._text_parts: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag != "a":
+        attributes = dict(attrs)
+        if self._title_depth:
+            self._title_depth += 1
             return
-        href = dict(attrs).get("href") or ""
-        if "arxiv.org/abs/" in href:
-            self._href = urljoin("https://www.benty-fields.com", href)
+
+        if tag == "a" and attributes.get("title") == "Abstract":
+            href = attributes.get("href") or ""
+            if href.startswith("/abs/"):
+                self._links.append(urljoin("https://arxiv.org", href))
+
+        classes = (attributes.get("class") or "").split()
+        if tag == "div" and "list-title" in classes:
+            self._title_depth = 1
             self._text_parts = []
 
     def handle_data(self, data: str) -> None:
-        if self._href:
+        if self._title_depth:
             self._text_parts.append(data)
 
     def handle_endtag(self, tag: str) -> None:
-        if tag != "a" or not self._href:
+        if not self._title_depth:
             return
-        title = _clean_text(" ".join(self._text_parts))
-        if title and title.lower() not in {"arxiv", "abstract", "pdf"}:
-            self.items.append(NewsItem(title=title, link=self._href))
-        self._href = ""
+        self._title_depth -= 1
+        if self._title_depth:
+            return
+
+        title = re.sub(r"^Title:\s*", "", _clean_text(" ".join(self._text_parts)))
+        item_index = len(self.items)
+        if title and item_index < len(self._links):
+            self.items.append(NewsItem(title=title, link=self._links[item_index]))
         self._text_parts = []
 
 

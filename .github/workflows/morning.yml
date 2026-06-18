@@ -45,5 +45,5 @@ jobs:
           SPANISH_POLITICS_RSS_FEEDS: ${{ secrets.SPANISH_POLITICS_RSS_FEEDS }}
           SCIENCE_RSS_FEEDS: ${{ secrets.SCIENCE_RSS_FEEDS }}
           WORLD_POLITICS_RSS_FEEDS: ${{ secrets.WORLD_POLITICS_RSS_FEEDS }}
-          BENTY_FIELDS_URL: ${{ secrets.BENTY_FIELDS_URL }}
+          ARXIV_RECENT_URL: ${{ secrets.ARXIV_RECENT_URL }}
         run: python main.py

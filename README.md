@@ -103,7 +103,7 @@ You can also add RSS feed overrides:
 - `SPANISH_POLITICS_RSS_FEEDS`
 - `SCIENCE_RSS_FEEDS`
 - `WORLD_POLITICS_RSS_FEEDS`
-- `BENTY_FIELDS_URL`
+- `ARXIV_RECENT_URL`
 
 ## Run Manually In GitHub
 
@@ -198,20 +198,19 @@ Weather uses Open-Meteo, which does not require an API key.
 News uses targeted RSS feeds. The digest includes three Spanish politics headlines,
 two science headlines, and three world politics headlines.
 
-Galaxy-evolution papers are requested for the current Canary Islands date from:
+Galaxy-evolution papers are read directly from arXiv's official recent
+`astro-ph.GA` submissions page:
 
 ```text
-https://www.benty-fields.com/daily_arXiv_results?date=YYYY-MM-DD
+https://arxiv.org/list/astro-ph.GA/recent
 ```
 
-That page currently requires a Benty Fields login for automated requests. When it
-redirects to login or is unavailable, Morning Agent automatically falls back to
-the public arXiv API and returns three recent `astro-ph.GA` titles.
+Morning Agent returns the first three paper titles. If the recent-list page is
+temporarily unavailable, it falls back to arXiv's public API.
 
 ## Known Limitations
 
 - Google Calendar OAuth is not implemented yet.
 - GitHub Actions cron does not adjust automatically for daylight saving time.
 - RSS feeds can occasionally be slow or unavailable; broken feeds are skipped.
-- Benty Fields currently requires login, so unattended runs normally use the arXiv fallback.
 - Weather and news are fetched from free public services, so occasional API changes are possible.
