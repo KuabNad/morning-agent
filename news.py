@@ -14,6 +14,7 @@ import requests
 class NewsItem:
     title: str
     link: str
+    summary: str = ""
 
 
 @dataclass
@@ -99,7 +100,8 @@ def _fetch_arxiv_recent(recent_url: str, limit: int) -> list[NewsItem]:
 
         parser = _ArxivRecentParser()
         parser.feed(response.text)
-        return _unique_items(parser.items, limit)
+        items = _unique_items(parser.items, limit)
+        return _attach_arxiv_abstracts(items)
     except (requests.RequestException, ValueError):
         return []
 
@@ -124,6 +126,7 @@ def _fetch_arxiv_query(query: str, limit: int) -> list[NewsItem]:
             NewsItem(
                 title=_clean_text(getattr(entry, "title", "")),
                 link=getattr(entry, "link", ""),
+                summary=_clean_text(getattr(entry, "summary", "")),
             )
             for entry in feed.entries
             if _clean_text(getattr(entry, "title", ""))
@@ -131,6 +134,42 @@ def _fetch_arxiv_query(query: str, limit: int) -> list[NewsItem]:
         return _unique_items(items, limit)
     except requests.RequestException:
         return []
+
+
+def _attach_arxiv_abstracts(items: list[NewsItem]) -> list[NewsItem]:
+    arxiv_ids = [_arxiv_id(item.link) for item in items]
+    valid_ids = [arxiv_id for arxiv_id in arxiv_ids if arxiv_id]
+    if not valid_ids:
+        return items
+
+    try:
+        response = requests.get(
+            "https://export.arxiv.org/api/query",
+            params={"id_list": ",".join(valid_ids), "max_results": len(valid_ids)},
+            headers={"User-Agent": "morning-agent/1.0"},
+            timeout=20,
+        )
+        response.raise_for_status()
+        feed = feedparser.parse(response.content)
+        abstracts = {
+            _arxiv_id(getattr(entry, "id", "")): _clean_text(
+                getattr(entry, "summary", "")
+            )
+            for entry in feed.entries
+        }
+        for item in items:
+            item.summary = abstracts.get(_arxiv_id(item.link), "")
+    except requests.RequestException:
+        pass
+
+    return items
+
+
+def _arxiv_id(value: str) -> str:
+    match = re.search(r"(?:abs/|arxiv\.org/abs/)([^/?#]+)", value or "")
+    if not match:
+        return ""
+    return re.sub(r"v\d+$", "", match.group(1))
 
 
 def _unique_items(items: list[NewsItem], limit: int) -> list[NewsItem]:

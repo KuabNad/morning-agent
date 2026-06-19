@@ -83,6 +83,7 @@ Required for Telegram delivery:
 
 Optional:
 
+- `TELEGRAM_GROUP_CHAT_ID`
 - `OPENAI_API_KEY`
 - `EMAIL_ENABLED`
 - `SMTP_HOST`
@@ -104,6 +105,28 @@ You can also add RSS feed overrides:
 - `SCIENCE_RSS_FEEDS`
 - `WORLD_POLITICS_RSS_FEEDS`
 - `ARXIV_RECENT_URL`
+
+## Telegram Group Digest
+
+The existing private morning digest continues to use `TELEGRAM_CHAT_ID`.
+
+You can optionally send a second digest to a Telegram group. It contains the
+three latest `astro-ph.GA` papers, each summarized in simple Spanish in about
+200 words, plus a link to the paper.
+
+1. Create a Telegram group and add the other person.
+2. Add your existing bot to the group.
+3. Send a message such as `/start` in the group.
+4. Open `https://api.telegram.org/botYOUR_TOKEN/getUpdates`.
+5. Find the group's `chat.id`. Group IDs are usually negative numbers.
+6. Add that value as the GitHub Secret `TELEGRAM_GROUP_CHAT_ID`.
+
+The group summaries require `OPENAI_API_KEY`. If either
+`TELEGRAM_GROUP_CHAT_ID` or `OPENAI_API_KEY` is missing, the group digest is
+skipped without affecting your private message.
+
+Telegram limits individual messages to 4,096 characters. The agent keeps the
+digest together when possible and splits it cleanly between papers when needed.
 
 ## Run Manually In GitHub
 
@@ -140,6 +163,7 @@ GitHub Actions does not automatically adjust cron schedules for daylight saving 
 OpenAI is optional.
 
 - Add `OPENAI_API_KEY` to enable digest polishing and smarter suggested priorities.
+- The Spanish arXiv group summaries require `OPENAI_API_KEY`.
 - Leave it empty to use the built-in template.
 
 The app still works if the OpenAI request fails.

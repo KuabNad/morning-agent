@@ -32,6 +32,7 @@ jobs:
           TIMEZONE: ${{ secrets.TIMEZONE }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_GROUP_CHAT_ID: ${{ secrets.TELEGRAM_GROUP_CHAT_ID }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           EMAIL_ENABLED: ${{ secrets.EMAIL_ENABLED }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}

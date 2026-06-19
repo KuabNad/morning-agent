@@ -80,6 +80,7 @@ class Settings:
 
     telegram_bot_token: str = get_str("TELEGRAM_BOT_TOKEN")
     telegram_chat_id: str = get_str("TELEGRAM_CHAT_ID")
+    telegram_group_chat_id: str = get_str("TELEGRAM_GROUP_CHAT_ID")
 
     openai_api_key: str = get_str("OPENAI_API_KEY")
     openai_model: str = get_str("OPENAI_MODEL", "gpt-4o-mini")
