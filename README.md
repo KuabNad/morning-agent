@@ -128,6 +128,11 @@ skipped without affecting your private message.
 Telegram limits individual messages to 4,096 characters. The agent keeps the
 digest together when possible and splits it cleanly between papers when needed.
 
+The workflow remembers which papers were sent. If arXiv has no new submissions,
+as often happens during weekends, the next run summarizes the next three unseen
+papers instead of repeating the previous message. New submissions automatically
+reset the sequence to the newest three papers.
+
 ## Run Manually In GitHub
 
 1. Open the repository on GitHub.

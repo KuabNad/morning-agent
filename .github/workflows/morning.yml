@@ -21,6 +21,14 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Restore arXiv group history
+        uses: actions/cache@v5
+        with:
+          path: .state/arxiv_group_state.json
+          key: arxiv-group-state-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            arxiv-group-state-${{ github.ref_name }}-
+
       - name: Install dependencies
         run: pip install -r requirements.txt
 

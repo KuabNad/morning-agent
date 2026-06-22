@@ -89,7 +89,26 @@ def _fetch_galaxy_papers(recent_url: str, limit: int) -> list[NewsItem]:
     return _fetch_arxiv_query("cat:astro-ph.GA", limit)
 
 
-def _fetch_arxiv_recent(recent_url: str, limit: int) -> list[NewsItem]:
+def fetch_group_paper_candidates(settings, limit: int = 30) -> list[NewsItem]:
+    recent_items = _fetch_arxiv_recent(
+        settings.arxiv_recent_url,
+        limit,
+        include_abstracts=False,
+    )
+    if recent_items:
+        return recent_items
+    return _fetch_arxiv_query("cat:astro-ph.GA", limit)
+
+
+def enrich_arxiv_papers(items: list[NewsItem]) -> list[NewsItem]:
+    return _attach_arxiv_abstracts(items)
+
+
+def _fetch_arxiv_recent(
+    recent_url: str,
+    limit: int,
+    include_abstracts: bool = True,
+) -> list[NewsItem]:
     try:
         response = requests.get(
             recent_url,
@@ -101,7 +120,7 @@ def _fetch_arxiv_recent(recent_url: str, limit: int) -> list[NewsItem]:
         parser = _ArxivRecentParser()
         parser.feed(response.text)
         items = _unique_items(parser.items, limit)
-        return _attach_arxiv_abstracts(items)
+        return _attach_arxiv_abstracts(items) if include_abstracts else items
     except (requests.RequestException, ValueError):
         return []
 

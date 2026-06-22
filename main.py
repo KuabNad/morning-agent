@@ -1,9 +1,13 @@
-from arxiv_group_digest import build_arxiv_group_digest
+from arxiv_group_digest import (
+    build_arxiv_group_digest,
+    save_group_paper_state,
+    select_group_papers,
+)
 from calendar_events import fetch_today_events
 from config import settings
 from digest_builder import build_digest
 from email_sender import send_email_backup
-from news import fetch_news
+from news import enrich_arxiv_papers, fetch_group_paper_candidates, fetch_news
 from telegram_sender import send_telegram_group_message, send_telegram_message
 from weather import fetch_weather
 
@@ -19,16 +23,13 @@ def main() -> None:
     if sent_to_telegram:
         print("Digest sent to Telegram.")
 
-    galaxy_section = next(
-        (section for section in news_sections if section.name == "Galaxy evolution papers"),
-        None,
-    )
-    group_digest = build_arxiv_group_digest(
-        settings,
-        galaxy_section.items if galaxy_section else [],
-    )
-    if send_telegram_group_message(settings, group_digest):
-        print("Spanish arXiv digest sent to Telegram group.")
+    if settings.telegram_group_chat_id and settings.openai_api_key:
+        candidates = fetch_group_paper_candidates(settings)
+        group_papers = enrich_arxiv_papers(select_group_papers(candidates))
+        group_digest = build_arxiv_group_digest(settings, group_papers)
+        if send_telegram_group_message(settings, group_digest):
+            save_group_paper_state(candidates, group_papers)
+            print("Spanish arXiv digest sent to Telegram group.")
 
     send_email_backup(settings, "Morning digest", digest)
 

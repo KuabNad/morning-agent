@@ -1,5 +1,75 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+import re
+
+
+DEFAULT_STATE_PATH = Path(".state/arxiv_group_state.json")
+
+
+def select_group_papers(
+    candidates,
+    limit: int = 3,
+    state_path: Path = DEFAULT_STATE_PATH,
+):
+    if not candidates:
+        return []
+
+    latest_id = _paper_id(candidates[0])
+    state = _load_state(state_path)
+    sent_ids = (
+        set(state.get("sent_ids", []))
+        if state.get("latest_id") == latest_id
+        else set()
+    )
+    return [
+        paper
+        for paper in candidates
+        if _paper_id(paper) not in sent_ids
+    ][:limit]
+
+
+def save_group_paper_state(
+    candidates,
+    sent_papers,
+    state_path: Path = DEFAULT_STATE_PATH,
+) -> None:
+    if not candidates or not sent_papers:
+        return
+
+    latest_id = _paper_id(candidates[0])
+    state = _load_state(state_path)
+    sent_ids = (
+        list(state.get("sent_ids", []))
+        if state.get("latest_id") == latest_id
+        else []
+    )
+    for paper in sent_papers:
+        paper_id = _paper_id(paper)
+        if paper_id and paper_id not in sent_ids:
+            sent_ids.append(paper_id)
+
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(
+        json.dumps({"latest_id": latest_id, "sent_ids": sent_ids}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _load_state(state_path: Path) -> dict:
+    try:
+        return json.loads(state_path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {}
+
+
+def _paper_id(paper) -> str:
+    match = re.search(r"/abs/([^/?#]+)", paper.link or "")
+    if not match:
+        return paper.title.casefold()
+    return re.sub(r"v\d+$", "", match.group(1))
+
 
 def build_arxiv_group_digest(settings, papers) -> str:
     if not settings.telegram_group_chat_id:
