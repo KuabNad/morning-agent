@@ -5,6 +5,7 @@ from arxiv_group_digest import (
 )
 from calendar_events import fetch_today_events
 from config import settings
+from daily_verse import fetch_daily_verse
 from digest_builder import build_digest
 from email_sender import send_email_backup
 from news import enrich_arxiv_papers, fetch_group_paper_candidates, fetch_news
@@ -16,8 +17,15 @@ def main() -> None:
     calendar_result = fetch_today_events(settings)
     weather_report = fetch_weather(settings)
     news_sections = fetch_news(settings)
+    daily_verse = fetch_daily_verse()
 
-    digest = build_digest(settings, calendar_result, weather_report, news_sections)
+    digest = build_digest(
+        settings,
+        calendar_result,
+        weather_report,
+        news_sections,
+        daily_verse,
+    )
 
     sent_to_telegram = send_telegram_message(settings, digest)
     if sent_to_telegram:

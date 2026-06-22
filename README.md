@@ -10,7 +10,7 @@ The digest includes:
 - two science headlines
 - three daily galaxy-evolution paper titles
 - suggested priorities
-- a short reflection
+- BibleGateway's Verse of the Day
 
 It starts with:
 
@@ -223,6 +223,9 @@ Default location:
 - `TIMEZONE=Atlantic/Canary`
 
 Weather uses Open-Meteo, which does not require an API key.
+
+The reflection uses BibleGateway's Verse of the Day and links to the passage.
+If BibleGateway is temporarily unavailable, the digest falls back to Psalm 90:12.
 
 News uses targeted RSS feeds. The digest includes three Spanish politics headlines,
 two science headlines, and three world politics headlines.

@@ -2,11 +2,20 @@ from __future__ import annotations
 
 import re
 
-REFLECTION = "Teach us to number our days, that we may gain a heart of wisdom. — Psalm 90:12"
 
-
-def build_digest(settings, calendar_result, weather_report, news_sections) -> str:
-    base_digest = _build_template_digest(calendar_result, weather_report, news_sections)
+def build_digest(
+    settings,
+    calendar_result,
+    weather_report,
+    news_sections,
+    daily_verse,
+) -> str:
+    base_digest = _build_template_digest(
+        calendar_result,
+        weather_report,
+        news_sections,
+        daily_verse,
+    )
 
     if not settings.openai_api_key:
         return base_digest
@@ -18,7 +27,12 @@ def build_digest(settings, calendar_result, weather_report, news_sections) -> st
         return base_digest
 
 
-def _build_template_digest(calendar_result, weather_report, news_sections) -> str:
+def _build_template_digest(
+    calendar_result,
+    weather_report,
+    news_sections,
+    daily_verse,
+) -> str:
     lines = ["Good morning Kuba 👋", "", "🗓 Today"]
     lines.extend(_calendar_lines(calendar_result))
 
@@ -39,7 +53,18 @@ def _build_template_digest(calendar_result, weather_report, news_sections) -> st
     lines.extend(["✅ Suggested priorities"])
     lines.extend(_priority_lines(calendar_result, weather_report))
 
-    lines.extend(["", "🙏 Reflection", f"“{REFLECTION}”"])
+    reference = daily_verse.reference
+    if daily_verse.translation:
+        reference += f" ({daily_verse.translation})"
+    lines.extend(
+        [
+            "",
+            "🙏 Reflection",
+            f"“{daily_verse.text}” — {reference}",
+        ]
+    )
+    if daily_verse.link:
+        lines.append(f"(open in BibleGateway) {daily_verse.link}")
     return "\n".join(lines).strip()
 
 
@@ -85,6 +110,14 @@ def _priority_lines(calendar_result, weather_report) -> list[str]:
 def _polish_with_openai(settings, base_digest: str) -> str:
     from openai import OpenAI
 
+    reflection_match = re.search(r"\n🙏 Reflection\n[\s\S]+$", base_digest)
+    reflection = reflection_match.group(0) if reflection_match else ""
+    prompt_digest = (
+        base_digest.replace(reflection, "\n__REFLECTION_BLOCK__")
+        if reflection
+        else base_digest
+    )
+
     links: list[str] = []
 
     def replace_link(match: re.Match) -> str:
@@ -94,7 +127,7 @@ def _polish_with_openai(settings, base_digest: str) -> str:
     prompt_digest = re.sub(
         r"\(read more\)\s+(https?://\S+)",
         replace_link,
-        base_digest,
+        prompt_digest,
     )
 
     client = OpenAI(api_key=settings.openai_api_key)
@@ -129,5 +162,10 @@ def _polish_with_openai(settings, base_digest: str) -> str:
         if placeholder not in polished_digest:
             raise ValueError("OpenAI response removed a news link")
         polished_digest = polished_digest.replace(placeholder, link)
+
+    if reflection:
+        if "__REFLECTION_BLOCK__" not in polished_digest:
+            raise ValueError("OpenAI response removed the reflection")
+        polished_digest = polished_digest.replace("__REFLECTION_BLOCK__", reflection.lstrip())
 
     return polished_digest

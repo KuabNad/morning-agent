@@ -41,13 +41,16 @@ def _send_to_chat(settings, chat_id: str, text: str, destination: str) -> bool:
 
 def _format_for_telegram(text: str) -> str:
     formatted_lines = []
-    link_pattern = re.compile(r"^\s*\(read more\)\s+(https?://\S+)\s*$")
+    link_pattern = re.compile(
+        r"^\s*\((read more|open in BibleGateway)\)\s+(https?://\S+)\s*$"
+    )
 
     for line in text.splitlines():
         match = link_pattern.match(line)
         if match:
-            url = escape(match.group(1), quote=True)
-            formatted_lines.append(f'  <a href="{url}">(read more)</a>')
+            label = escape(match.group(1))
+            url = escape(match.group(2), quote=True)
+            formatted_lines.append(f'  <a href="{url}">({label})</a>')
         else:
             formatted_lines.append(escape(line))
 
